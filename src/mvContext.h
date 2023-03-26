@@ -10,13 +10,9 @@
 #include <atomic>
 #include <memory>
 #include "mvCore.h"
-#include "cpp.hint"
-#include "mvPythonParser.h"
+#include "mvPyUtils.h"
 #include "mvTypes.h"
 #include "mvGraphics.h"
-
-#define PY_SSIZE_T_CLEAN
-#include <Python.h>
 
 //-----------------------------------------------------------------------------
 // forward declarations
@@ -108,7 +104,7 @@ struct mvContext
     std::atomic_bool    waitOneFrame       = false;
     std::atomic_bool    manualMutexControl = false;
     std::atomic_bool    started            = false;
-    std::mutex          mutex;
+    std::recursive_mutex mutex;
     std::future<bool>   future;
     float               deltaTime = 0.0f;   // time since last frame
     double              time      = 0.0;    // total time since starting

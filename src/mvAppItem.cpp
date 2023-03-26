@@ -2,15 +2,11 @@
 #include "mvContext.h"
 #include "mvItemRegistry.h"
 #include "mvCore.h"
-#include "mvPythonExceptions.h"
-#include "mvGlobalIntepreterLock.h"
 #include "mvAppItemCommons.h"
-#include "mvLog.h"
-#include "mvPythonTypeChecker.h"
-#include "mvPyObject.h"
+#include "mvPyUtils.h"
 
-mv_internal void 
-UpdateLocations(std::vector<mvRef<mvAppItem>>* children, i32 slots)
+static void
+UpdateLocations(std::vector<std::shared_ptr<mvAppItem>>* children, i32 slots)
 {
     for (i32 i = 0; i < slots; i++)
     {
@@ -56,79 +52,6 @@ mvAppItem::~mvAppItem()
         }
         CleanUpItem(*GContext->itemRegistry, uuid);
     }
-}
-
-void 
-mvAppItem::applyTemplate(mvAppItem* item)
-{
-    config.useInternalLabel = item->config.useInternalLabel;
-    config.tracked = item->config.tracked;
-    config.trackOffset = item->config.trackOffset;
-    config.searchLast = item->config.searchLast;
-    config.indent = item->config.indent;
-    config.show = item->config.show;
-    config.filter = item->config.filter;
-    config.payloadType = item->config.payloadType;
-    config.enabled = item->config.enabled;
-    config.source = item->config.source;
-    font = item->font;
-    theme = item->theme;
-    config.width = item->config.width;
-    config.height = item->config.height;
-    info.dirty_size = true;
-    //setPos(item->state.pos);
-
-    if (!item->config.specifiedLabel.empty())
-    {
-        config.specifiedLabel = item->config.specifiedLabel;
-        if (config.useInternalLabel)
-            info.internalLabel = item->config.specifiedLabel + "###" + std::to_string(uuid);
-        else
-            info.internalLabel = item->config.specifiedLabel;
-    }
-
-    if (config.enabled) info.enabledLastFrame = true;
-    else info.disabledLastFrame = true;
-
-    if (item->config.callback)
-    {
-        Py_XINCREF(item->config.callback);
-
-        if (item->config.callback == Py_None)
-            config.callback = nullptr;
-        else
-            config.callback = item->config.callback;
-  
-    }
-
-    if (item->config.dragCallback)
-    {
-        Py_XINCREF(item->config.dragCallback);
-        if (item->config.dragCallback == Py_None)
-            config.dragCallback = nullptr;
-        else
-            config.dragCallback = item->config.dragCallback;
-    }
-
-    if (item->config.dropCallback)
-    {
-        Py_XINCREF(item->config.dropCallback);
-        if (item->config.dropCallback == Py_None)
-            config.dropCallback = nullptr;
-        else
-            config.dropCallback = item->config.dropCallback;
-    }
-
-    if (item->config.user_data)
-    {
-        Py_XINCREF(item->config.user_data);
-        if (item->config.user_data == Py_None)
-            config.user_data = nullptr;
-        else
-            config.user_data = item->config.user_data;
-    }
-
-    applySpecificTemplate(item);
 }
 
 PyObject* 
@@ -297,7 +220,7 @@ mvAppItem::setDataSource(mvUUID value)
     config.source = value; 
 }
 
-mv_internal bool
+static bool
 CanItemTypeBeHovered(mvAppItemType type)
 {
     switch (type)
@@ -359,7 +282,7 @@ CanItemTypeBeHovered(mvAppItemType type)
 
 }
 
-mv_internal bool
+static bool
 CanItemTypeBeActive(mvAppItemType type)
 {
     switch (type)
@@ -410,7 +333,7 @@ CanItemTypeBeActive(mvAppItemType type)
 
 }
 
-mv_internal bool
+static bool
 CanItemTypeBeFocused(mvAppItemType type)
 {
     switch (type)
@@ -462,7 +385,7 @@ CanItemTypeBeFocused(mvAppItemType type)
 
 }
 
-mv_internal bool
+static bool
 CanItemTypeBeClicked(mvAppItemType type)
 {
     switch (type)
@@ -516,7 +439,7 @@ CanItemTypeBeClicked(mvAppItemType type)
 
 }
 
-mv_internal bool
+static bool
 CanItemTypeBeVisible(mvAppItemType type)
 {
     switch (type)
@@ -580,7 +503,7 @@ CanItemTypeBeVisible(mvAppItemType type)
 
 }
 
-mv_internal bool
+static bool
 CanItemTypeBeEdited(mvAppItemType type)
 {
     switch (type)
@@ -618,7 +541,7 @@ CanItemTypeBeEdited(mvAppItemType type)
 
 }
 
-mv_internal bool
+static bool
 CanItemTypeBeActivated(mvAppItemType type)
 {
     switch (type)
@@ -668,7 +591,7 @@ CanItemTypeBeActivated(mvAppItemType type)
 
 }
 
-mv_internal bool
+static bool
 CanItemTypeBeDeactivated(mvAppItemType type)
 {
     switch (type)
@@ -719,7 +642,7 @@ CanItemTypeBeDeactivated(mvAppItemType type)
 
 }
 
-mv_internal bool
+static bool
 CanItemTypeBeDeactivatedAE(mvAppItemType type)
 {
     switch (type)
@@ -757,7 +680,7 @@ CanItemTypeBeDeactivatedAE(mvAppItemType type)
 
 }
 
-mv_internal bool
+static bool
 CanItemTypeBeToggledOpen(mvAppItemType type)
 {
     switch (type)
@@ -771,7 +694,7 @@ CanItemTypeBeToggledOpen(mvAppItemType type)
 
 }
 
-mv_internal bool
+static bool
 CanItemTypeHaveRectMin(mvAppItemType type)
 {
     switch (type)
@@ -828,13 +751,13 @@ CanItemTypeHaveRectMin(mvAppItemType type)
 
 }
 
-mv_internal bool
+static bool
 CanItemTypeHaveRectMax(mvAppItemType type)
 {
     return CanItemTypeHaveRectMin(type);
 }
 
-mv_internal bool
+static bool
 CanItemTypeHaveRectSize(mvAppItemType type)
 {
     switch (type)
@@ -895,7 +818,7 @@ CanItemTypeHaveRectSize(mvAppItemType type)
 
 }
 
-mv_internal bool
+static bool
 CanItemTypeHaveContAvail(mvAppItemType type)
 {
     switch (type)
@@ -1042,6 +965,7 @@ DearPyGui::GetEntityDesciptionFlags(mvAppItemType type)
     case mvAppItemType::mvActivatedHandler:
     case mvAppItemType::mvActiveHandler:
     case mvAppItemType::mvClickedHandler:
+    case mvAppItemType::mvDoubleClickedHandler:
     case mvAppItemType::mvDeactivatedAfterEditHandler:
     case mvAppItemType::mvDeactivatedHandler:
     case mvAppItemType::mvEditedHandler:
@@ -1139,7 +1063,7 @@ DearPyGui::GetEntityValueType(mvAppItemType type)
         
     case mvAppItemType::mvFloat4Value:
     case mvAppItemType::mvThemeStyle:
-    case mvAppItemType::mvAnnotation:
+
     case mvAppItemType::mvSlider3D:
     case mvAppItemType::mvInputFloatMulti:
     case mvAppItemType::mvSliderFloatMulti:
@@ -1200,6 +1124,7 @@ DearPyGui::GetEntityValueType(mvAppItemType type)
     case mvAppItemType::mvDragDoubleMulti:
     case mvAppItemType::mvInputDoubleMulti:
     case mvAppItemType::mvSliderDoubleMulti:
+    case mvAppItemType::mvAnnotation:
     case mvAppItemType::mvDragPoint: return StorageValueTypes::Double4;
 
     case mvAppItemType::mvStaticTexture:
@@ -1214,7 +1139,7 @@ const char*
 DearPyGui::GetEntityTypeString(mvAppItemType type)
 {
     #define X(el) "mvAppItemType::" #el,
-    mv_local_persist const char* entity_type_strings[(size_t)mvAppItemType::ItemTypeCount] =
+    static const char* entity_type_strings[(size_t)mvAppItemType::ItemTypeCount] =
     {
         "All, an error occured", // shouldn't actually occur
         MV_ITEM_TYPES
@@ -1223,10 +1148,10 @@ DearPyGui::GetEntityTypeString(mvAppItemType type)
     return entity_type_strings[(size_t)type];
 }
 
-mvRef<mvAppItem>
+std::shared_ptr<mvAppItem>
 DearPyGui::CreateEntity(mvAppItemType type, mvUUID id)
 {
-    #define X(el) case mvAppItemType::el: {auto item = CreateRef<el>(id); item->type = mvAppItemType::el; return item;};
+    #define X(el) case mvAppItemType::el: {auto item = std::make_shared<el>(id); item->type = mvAppItemType::el; return item;};
     switch (type)
     {
         MV_ITEM_TYPES
@@ -1242,7 +1167,7 @@ DearPyGui::GetAllowableParents(mvAppItemType type)
     // TODO: possibly index into array instead of switch
 
     #define MV_ADD_PARENT(x){#x, (int)x}
-    #define MV_START_PARENTS {mv_local_persist std::vector<std::pair<std::string, i32>> parents = {
+    #define MV_START_PARENTS {static std::vector<std::pair<std::string, i32>> parents = {
     #define MV_END_PARENTS };return parents;}
 
     switch (type)
@@ -1251,6 +1176,7 @@ DearPyGui::GetAllowableParents(mvAppItemType type)
     case mvAppItemType::mvActivatedHandler:
     case mvAppItemType::mvActiveHandler:
     case mvAppItemType::mvClickedHandler:
+    case mvAppItemType::mvDoubleClickedHandler:
     case mvAppItemType::mvDeactivatedAfterEditHandler:
     case mvAppItemType::mvDeactivatedHandler:
     case mvAppItemType::mvEditedHandler:
@@ -1537,7 +1463,7 @@ DearPyGui::GetAllowableParents(mvAppItemType type)
 
     default:
     {
-        mv_local_persist std::vector<std::pair<std::string, i32>> parents = { {"All", 0} };
+        static std::vector<std::pair<std::string, i32>> parents = { {"All", 0} };
         return parents;
     }
     }
@@ -1554,7 +1480,7 @@ DearPyGui::GetAllowableChildren(mvAppItemType type)
     // TODO: possibly index into array instead of switch
 
     #define MV_ADD_CHILD(x){#x, (int)x}
-    #define MV_START_CHILDREN {mv_local_persist std::vector<std::pair<std::string, i32>> children = {
+    #define MV_START_CHILDREN {static std::vector<std::pair<std::string, i32>> children = {
     #define MV_END_CHILDREN };return children;}
 
     switch (type)
@@ -1565,6 +1491,7 @@ DearPyGui::GetAllowableChildren(mvAppItemType type)
         MV_ADD_CHILD(mvAppItemType::mvActivatedHandler),
         MV_ADD_CHILD(mvAppItemType::mvActiveHandler),
         MV_ADD_CHILD(mvAppItemType::mvClickedHandler),
+        MV_ADD_CHILD(mvAppItemType::mvDoubleClickedHandler),
         MV_ADD_CHILD(mvAppItemType::mvDeactivatedAfterEditHandler),
         MV_ADD_CHILD(mvAppItemType::mvDeactivatedHandler),
         MV_ADD_CHILD(mvAppItemType::mvEditedHandler),
@@ -1645,6 +1572,7 @@ DearPyGui::GetAllowableChildren(mvAppItemType type)
         MV_ADD_CHILD(mvAppItemType::mvActivatedHandler),
         MV_ADD_CHILD(mvAppItemType::mvActiveHandler),
         MV_ADD_CHILD(mvAppItemType::mvClickedHandler),
+        MV_ADD_CHILD(mvAppItemType::mvDoubleClickedHandler),
         MV_ADD_CHILD(mvAppItemType::mvDeactivatedAfterEditHandler),
         MV_ADD_CHILD(mvAppItemType::mvDeactivatedHandler),
         MV_ADD_CHILD(mvAppItemType::mvEditedHandler),
@@ -1665,6 +1593,7 @@ DearPyGui::GetAllowableChildren(mvAppItemType type)
         MV_ADD_CHILD(mvAppItemType::mvActivatedHandler),
         MV_ADD_CHILD(mvAppItemType::mvActiveHandler),
         MV_ADD_CHILD(mvAppItemType::mvClickedHandler),
+        MV_ADD_CHILD(mvAppItemType::mvDoubleClickedHandler),
         MV_ADD_CHILD(mvAppItemType::mvDeactivatedAfterEditHandler),
         MV_ADD_CHILD(mvAppItemType::mvDeactivatedHandler),
         MV_ADD_CHILD(mvAppItemType::mvEditedHandler),
@@ -1680,6 +1609,7 @@ DearPyGui::GetAllowableChildren(mvAppItemType type)
         MV_ADD_CHILD(mvAppItemType::mvNodeAttribute),
         MV_ADD_CHILD(mvAppItemType::mvActiveHandler),
         MV_ADD_CHILD(mvAppItemType::mvClickedHandler),
+        MV_ADD_CHILD(mvAppItemType::mvDoubleClickedHandler),
         MV_ADD_CHILD(mvAppItemType::mvHoverHandler),
         MV_ADD_CHILD(mvAppItemType::mvVisibleHandler),
         MV_ADD_CHILD(mvAppItemType::mvDragPayload),
@@ -1761,6 +1691,7 @@ DearPyGui::GetAllowableChildren(mvAppItemType type)
         MV_ADD_CHILD(mvAppItemType::mvActivatedHandler),
         MV_ADD_CHILD(mvAppItemType::mvActiveHandler),
         MV_ADD_CHILD(mvAppItemType::mvClickedHandler),
+        MV_ADD_CHILD(mvAppItemType::mvDoubleClickedHandler),
         MV_ADD_CHILD(mvAppItemType::mvDeactivatedAfterEditHandler),
         MV_ADD_CHILD(mvAppItemType::mvDeactivatedHandler),
         MV_ADD_CHILD(mvAppItemType::mvEditedHandler),
@@ -1778,7 +1709,7 @@ DearPyGui::GetAllowableChildren(mvAppItemType type)
 
     default:
         {
-            mv_local_persist std::vector<std::pair<std::string, i32>> parents = { {"All", 0} };
+            static std::vector<std::pair<std::string, i32>> parents = { {"All", 0} };
             return parents;
         }
     }
@@ -1788,32 +1719,32 @@ DearPyGui::GetAllowableChildren(mvAppItemType type)
     #undef MV_END_CHILDREN
 }
 
-mvRef<mvThemeComponent>&
+std::shared_ptr<mvThemeComponent>&
 DearPyGui::GetClassThemeComponent(mvAppItemType type)
 {
-    #define X(el) case mvAppItemType::el: { mv_local_persist mvRef<mvThemeComponent> s_class_theme = nullptr; return s_class_theme; }
+    #define X(el) case mvAppItemType::el: { static std::shared_ptr<mvThemeComponent> s_class_theme = nullptr; return s_class_theme; }
     switch (type)
     {
     MV_ITEM_TYPES
     default:
         {
-            mv_local_persist mvRef<mvThemeComponent> s_class_theme = nullptr;
+            static std::shared_ptr<mvThemeComponent> s_class_theme = nullptr;
             return s_class_theme;
         }
     }
     #undef X
 }
 
-mvRef<mvThemeComponent>&
+std::shared_ptr<mvThemeComponent>&
 DearPyGui::GetDisabledClassThemeComponent(mvAppItemType type)
 {
-    #define X(el) case mvAppItemType::el: { mv_local_persist mvRef<mvThemeComponent> s_class_theme = nullptr; return s_class_theme; }
+    #define X(el) case mvAppItemType::el: { static std::shared_ptr<mvThemeComponent> s_class_theme = nullptr; return s_class_theme; }
     switch (type)
     {
     MV_ITEM_TYPES
     default:
         {
-            mv_local_persist mvRef<mvThemeComponent> s_class_theme = nullptr;
+            static std::shared_ptr<mvThemeComponent> s_class_theme = nullptr;
             return s_class_theme;
         }
     }
@@ -1852,7 +1783,7 @@ DearPyGui::GetEntityParser(mvAppItemType type)
 
         args.push_back({ mvPyDataType::Bool, "small", mvArgType::KEYWORD_ARG, "False", "Shrinks the size of the button to the text of the label it contains. Useful for embedding in text." });
         args.push_back({ mvPyDataType::Bool, "arrow", mvArgType::KEYWORD_ARG, "False", "Displays an arrow in place of the text string. This requires the direction keyword." });
-        args.push_back({ mvPyDataType::Integer, "direction", mvArgType::KEYWORD_ARG, "0", "Sets the cardinal direction for the arrow buy using constants mvDir_Left, mvDir_Up, mvDir_Down, mvDir_Right, mvDir_None. Arrow keyword must be set to True." });
+        args.push_back({ mvPyDataType::Integer, "direction", mvArgType::KEYWORD_ARG, "0", "Sets the cardinal direction for the arrow by using constants mvDir_Left, mvDir_Up, mvDir_Down, mvDir_Right, mvDir_None. Arrow keyword must be set to True." });
    
         setup.about = "Adds a button.";
         break;
@@ -2162,6 +2093,7 @@ DearPyGui::GetEntityParser(mvAppItemType type)
         AddCommonArgs(args, (CommonParserArgs)(
             MV_PARSER_ARG_ID |
             MV_PARSER_ARG_WIDTH |
+            MV_PARSER_ARG_HEIGHT |
             MV_PARSER_ARG_INDENT |
             MV_PARSER_ARG_PARENT |
             MV_PARSER_ARG_BEFORE |
@@ -2670,6 +2602,7 @@ DearPyGui::GetEntityParser(mvAppItemType type)
         args.push_back({ mvPyDataType::String, "default_value", mvArgType::KEYWORD_ARG, "''", "String value of the item that will be selected by default." });
         args.push_back({ mvPyDataType::Integer, "num_items", mvArgType::KEYWORD_ARG, "3", "Expands the height of the listbox to show specified number of items." });
 
+
         setup.about = "Adds a listbox. If height is not large enough to show all items a scroll bar will appear.";
         break;
     }
@@ -2720,16 +2653,19 @@ DearPyGui::GetEntityParser(mvAppItemType type)
         );
 
         // plot flags
-        args.push_back({ mvPyDataType::Bool, "no_title", mvArgType::KEYWORD_ARG, "False" });
-        args.push_back({ mvPyDataType::Bool, "no_menus", mvArgType::KEYWORD_ARG, "False" });
-        args.push_back({ mvPyDataType::Bool, "no_box_select", mvArgType::KEYWORD_ARG, "False" });
-        args.push_back({ mvPyDataType::Bool, "no_mouse_pos", mvArgType::KEYWORD_ARG, "False" });
-        args.push_back({ mvPyDataType::Bool, "no_highlight", mvArgType::KEYWORD_ARG, "False" });
-        args.push_back({ mvPyDataType::Bool, "no_child", mvArgType::KEYWORD_ARG, "False" });
-        args.push_back({ mvPyDataType::Bool, "query", mvArgType::KEYWORD_ARG, "False" });
-        args.push_back({ mvPyDataType::Bool, "crosshairs", mvArgType::KEYWORD_ARG, "False" });
-        args.push_back({ mvPyDataType::Bool, "anti_aliased", mvArgType::KEYWORD_ARG, "False" });
-        args.push_back({ mvPyDataType::Bool, "equal_aspects", mvArgType::KEYWORD_ARG, "False" });
+        args.push_back({ mvPyDataType::Bool, "no_title", mvArgType::KEYWORD_ARG, "False", "the plot title will not be displayed"});
+        args.push_back({ mvPyDataType::Bool, "no_menus", mvArgType::KEYWORD_ARG, "False", "the user will not be able to open context menus with right-click"});
+        args.push_back({ mvPyDataType::Bool, "no_box_select", mvArgType::KEYWORD_ARG, "False", "the user will not be able to box-select with right-click drag"});
+        args.push_back({ mvPyDataType::Bool, "no_mouse_pos", mvArgType::KEYWORD_ARG, "False", "the mouse position, in plot coordinates, will not be displayed inside of the plot"});
+        args.push_back({ mvPyDataType::Bool, "no_highlight", mvArgType::KEYWORD_ARG, "False", "plot items will not be highlighted when their legend entry is hovered"});
+        args.push_back({ mvPyDataType::Bool, "no_child", mvArgType::KEYWORD_ARG, "False", "a child window region will not be used to capture mouse scroll (can boost performance for single ImGui window applications)"});
+        args.push_back({ mvPyDataType::Bool, "query", mvArgType::KEYWORD_ARG, "False", "the user will be able to draw query rects with middle - mouse or CTRL + right - click drag"});
+        args.push_back({ mvPyDataType::Bool, "crosshairs", mvArgType::KEYWORD_ARG, "False", "the default mouse cursor will be replaced with a crosshair when hovered"});
+        args.push_back({ mvPyDataType::Bool, "anti_aliased", mvArgType::KEYWORD_ARG, "False", "plot lines will be software anti-aliased (not recommended for high density plots, prefer MSAA)"});
+        args.push_back({ mvPyDataType::Bool, "equal_aspects", mvArgType::KEYWORD_ARG, "False", "primary x and y axes will be constrained to have the same units/pixel (does not apply to auxiliary y-axes)"});
+        args.push_back({ mvPyDataType::Bool, "use_local_time", mvArgType::KEYWORD_ARG, "False", "axis labels will be formatted for your timezone when" });
+        args.push_back({ mvPyDataType::Bool, "use_ISO8601", mvArgType::KEYWORD_ARG, "False", "dates will be formatted according to ISO 8601 where applicable (e.g. YYYY-MM-DD, YYYY-MM, --MM-DD, etc.)" });
+        args.push_back({ mvPyDataType::Bool, "use_24hour_clock", mvArgType::KEYWORD_ARG, "False", "times will be formatted using a 24 hour clock" });
 
         // key modifiers
         args.push_back({ mvPyDataType::Integer, "pan_button", mvArgType::KEYWORD_ARG, "internal_dpg.mvMouseButton_Left", "enables panning when held" });
@@ -4838,6 +4774,21 @@ DearPyGui::GetEntityParser(mvAppItemType type)
         setup.category = { "Widgets", "Events" };
         break;
     }
+    case mvAppItemType::mvDoubleClickedHandler:              
+    {
+        AddCommonArgs(args, (CommonParserArgs)(
+            MV_PARSER_ARG_ID |
+            MV_PARSER_ARG_SHOW |
+            MV_PARSER_ARG_PARENT |
+            MV_PARSER_ARG_CALLBACK)
+        );
+
+        args.push_back({ mvPyDataType::Integer, "button", mvArgType::POSITIONAL_ARG, "-1", "Submits callback for all mouse buttons" });
+
+        setup.about = "Adds a double click handler.";
+        setup.category = { "Widgets", "Events" };
+        break;
+    }
     case mvAppItemType::mvDragPayload:                 
     {
         AddCommonArgs(args, (CommonParserArgs)(
@@ -5359,99 +5310,104 @@ DearPyGui::GetEntityParser(mvAppItemType type)
 }
 
 void
-DearPyGui::OnChildAdded(mvAppItem* item, mvRef<mvAppItem> child)
+DearPyGui::OnChildAdded(mvAppItem* item, std::shared_ptr<mvAppItem> child)
 {
     switch (item->type)
     {
 
-    case mvAppItemType::mvWindowAppItem:
-    {
-        mvWindowAppItem* actualItem = (mvWindowAppItem*)item;
-        if (child->type == mvAppItemType::mvMenuBar)
-            actualItem->configData.windowflags |= ImGuiWindowFlags_MenuBar;
-        return;
-    }
-
-    case mvAppItemType::mvFontRegistry:
-    {
-        mvFontRegistry* actualItem = (mvFontRegistry*)item;
-        actualItem->onChildAdd(child);
-        return;
-    }
-
-    case mvAppItemType::mvPlot:
-    {
-        mvPlot* actualItem = (mvPlot*)item;
-        if (child->type == mvAppItemType::mvPlotLegend)
-            actualItem->configData._flags &= ~ImPlotFlags_NoLegend;
-        
-        if (child->type == mvAppItemType::mvPlotAxis)
+        case mvAppItemType::mvWindowAppItem:
         {
-            actualItem->updateFlags();
-            actualItem->updateAxesNames();
+            mvWindowAppItem* actualItem = (mvWindowAppItem*)item;
+            if (child->type == mvAppItemType::mvMenuBar)
+                actualItem->configData.windowflags |= ImGuiWindowFlags_MenuBar;
+            return;
         }
-        return;
-    }
 
-    case mvAppItemType::mvSubPlots:
-    {
-        mvSubPlots* actualItem = (mvSubPlots*)item;
-        actualItem->onChildAdd(child);
-        return;
-    }
+        case mvAppItemType::mvFontRegistry:
+        {
+            mvFontRegistry* actualItem = (mvFontRegistry*)item;
+            actualItem->onChildAdd(child);
+            return;
+        }
 
-    case mvAppItemType::mvTable:
-    {
-        mvTable* actualItem = (mvTable*)item;
-        actualItem->onChildAdd(child);
-        return;
-    }
+        case mvAppItemType::mvPlot:
+        {
+            mvPlot* actualItem = (mvPlot*)item;
+            if (child->type == mvAppItemType::mvPlotLegend)
+                actualItem->configData._flags &= ~ImPlotFlags_NoLegend;
+
+            if (child->type == mvAppItemType::mvPlotAxis)
+            {
+                actualItem->updateFlags();
+                actualItem->updateAxesNames();
+            }
+            return;
+        }
+
+        case mvAppItemType::mvSubPlots:
+        {
+            mvSubPlots* actualItem = (mvSubPlots*)item;
+            actualItem->onChildAdd(child);
+            return;
+        }
+
+        case mvAppItemType::mvTable:
+        {
+            mvTable* actualItem = (mvTable*)item;
+            actualItem->onChildAdd(child);
+            return;
+        }
+
+        default: return;
     }
 }
     
 void
-DearPyGui::OnChildRemoved(mvAppItem* item, mvRef<mvAppItem> child)
+DearPyGui::OnChildRemoved(mvAppItem* item, std::shared_ptr<mvAppItem> child)
 {
     switch (item->type)
     {
 
-    case mvAppItemType::mvWindowAppItem:
-    {
-        mvWindowAppItem* actualItem = (mvWindowAppItem*)item;
-        if (child->type == mvAppItemType::mvMenuBar)
-            actualItem->configData.windowflags &= ~ImGuiWindowFlags_MenuBar;
-        return;
-    }
+        case mvAppItemType::mvWindowAppItem:
+        {
+            mvWindowAppItem* actualItem = (mvWindowAppItem*)item;
+            if (child->type == mvAppItemType::mvMenuBar)
+                actualItem->configData.windowflags &= ~ImGuiWindowFlags_MenuBar;
+            return;
+        }
 
-    case mvAppItemType::mvNodeEditor:
-    {
-        mvNodeEditor* actualItem = (mvNodeEditor*)item;
-        actualItem->onChildRemoved(child);
-        return;
-    }
+        case mvAppItemType::mvNodeEditor:
+        {
+            mvNodeEditor* actualItem = (mvNodeEditor*)item;
+            actualItem->onChildRemoved(child);
+            return;
+        }
 
-    case mvAppItemType::mvPlot:
-    {
-        mvPlot* actualItem = (mvPlot*)item;
-        if (child->type == mvAppItemType::mvPlotLegend)
-            actualItem->configData._flags |= ImPlotFlags_NoLegend;
-        if (child->type == mvAppItemType::mvPlotAxis)
-            actualItem->updateFlags();
-        return;
-    }
+        case mvAppItemType::mvPlot:
+        {
+            mvPlot* actualItem = (mvPlot*)item;
+            if (child->type == mvAppItemType::mvPlotLegend)
+                actualItem->configData._flags |= ImPlotFlags_NoLegend;
+            if (child->type == mvAppItemType::mvPlotAxis)
+                actualItem->updateFlags();
+            return;
+        }
 
-    case mvAppItemType::mvSubPlots:
-    {
-        mvSubPlots* actualItem = (mvSubPlots*)item;
-        actualItem->onChildRemoved(child);
-        return;
-    }
+        case mvAppItemType::mvSubPlots:
+        {
+            mvSubPlots* actualItem = (mvSubPlots*)item;
+            actualItem->onChildRemoved(child);
+            return;
+        }
 
-    case mvAppItemType::mvTable:
-    {
-        mvTable* actualItem = (mvTable*)item;
-        actualItem->onChildRemoved(child);
-        return;
-    }
+        case mvAppItemType::mvTable:
+        {
+            mvTable* actualItem = (mvTable*)item;
+            actualItem->onChildRemoved(child);
+            return;
+        }
+
+        default:
+            return;
     }
 }

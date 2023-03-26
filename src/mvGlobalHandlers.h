@@ -3,7 +3,6 @@
 #include "mvAppItem.h"
 #include "mvItemRegistry.h"
 #include "dearpygui.h"
-#include "cpp.hint"
 
 class mvHandlerRegistry : public mvAppItem
 {
@@ -21,7 +20,6 @@ public:
     void handleSpecificRequiredArgs(PyObject* dict) override;
     void handleSpecificKeywordArgs(PyObject* dict) override;
     void getSpecificConfiguration(PyObject* dict) override;
-    void applySpecificTemplate(mvAppItem* item) override;
 };
 
 class mvKeyPressHandler : public mvAppItem
@@ -33,7 +31,6 @@ public:
     void handleSpecificPositionalArgs(PyObject* dict) override;
     void handleSpecificKeywordArgs(PyObject* dict) override;
     void getSpecificConfiguration(PyObject* dict) override;
-    void applySpecificTemplate(mvAppItem* item) override;
 };
 
 class mvKeyReleaseHandler : public mvAppItem
@@ -45,7 +42,6 @@ public:
     void handleSpecificPositionalArgs(PyObject* dict) override;
     void handleSpecificKeywordArgs(PyObject* dict) override;
     void getSpecificConfiguration(PyObject* dict) override;
-    void applySpecificTemplate(mvAppItem* item) override;
 };
 
 class mvMouseClickHandler : public mvAppItem
@@ -57,7 +53,6 @@ public:
     void handleSpecificPositionalArgs(PyObject* dict) override;
     void handleSpecificKeywordArgs(PyObject* dict) override;
     void getSpecificConfiguration(PyObject* dict) override;
-    void applySpecificTemplate(mvAppItem* item) override;
 };
 
 class mvMouseDoubleClickHandler : public mvAppItem
@@ -69,7 +64,6 @@ public:
     void handleSpecificPositionalArgs(PyObject* dict) override;
     void handleSpecificKeywordArgs(PyObject* dict) override;
     void getSpecificConfiguration(PyObject* dict) override;
-    void applySpecificTemplate(mvAppItem* item) override;
 };
 
 class mvMouseDownHandler : public mvAppItem
@@ -81,7 +75,6 @@ public:
     void handleSpecificPositionalArgs(PyObject* dict) override;
     void handleSpecificKeywordArgs(PyObject* dict) override;
     void getSpecificConfiguration(PyObject* dict) override;
-    void applySpecificTemplate(mvAppItem* item) override;
 };
 
 class mvMouseDragHandler : public mvAppItem
@@ -94,7 +87,6 @@ public:
     void handleSpecificPositionalArgs(PyObject* dict) override;
     void handleSpecificKeywordArgs(PyObject* dict) override;
     void getSpecificConfiguration(PyObject* dict) override;
-    void applySpecificTemplate(mvAppItem* item) override;
 };
 
 class mvMouseMoveHandler : public mvAppItem
@@ -114,7 +106,6 @@ public:
     void handleSpecificPositionalArgs(PyObject* dict) override;
     void handleSpecificKeywordArgs(PyObject* dict) override;
     void getSpecificConfiguration(PyObject* dict) override;
-    void applySpecificTemplate(mvAppItem* item) override;
 };
 
 class mvMouseWheelHandler : public mvAppItem

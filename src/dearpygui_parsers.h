@@ -4,16 +4,13 @@
 #include <ImGuiFileDialog.h>
 #include <cstdlib>
 #include "mvToolManager.h"
-#include "mvBuffer.h"
-#include "mvVec4Type.h"
-#include "mvMat4Type.h"
-#include "mvPythonExceptions.h"
+#include "mvCustomTypes.h"
+#include "mvPyUtils.h"
 #include "mvViewport.h"
 #include <stb_image.h>
-#include "mvLog.h"
 #include "mvProfiler.h"
 
-mv_internal void
+static void
 InsertParser_Block0(std::map<std::string, mvPythonParser>& parsers)
 {
 	//-----------------------------------------------------------------------------
@@ -367,6 +364,7 @@ InsertParser_Block0(std::map<std::string, mvPythonParser>& parsers)
 		args.push_back({ mvPyDataType::Bool, "always_on_top", mvArgType::KEYWORD_ARG, "False", "Forces the viewport to always be drawn ontop of all other viewports." });
 		args.push_back({ mvPyDataType::Bool, "decorated", mvArgType::KEYWORD_ARG, "True", "Enabled and disabled the decorator bar at the top of the viewport." });
 		args.push_back({ mvPyDataType::FloatList, "clear_color", mvArgType::KEYWORD_ARG, "(0, 0, 0, 255)", "Sets the color of the back of the viewport." });
+		args.push_back({ mvPyDataType::Bool, "disable_close", mvArgType::KEYWORD_ARG, "False", "Disables the viewport close button. can be used with set_exit_callback" });
 
 		mvPythonParserSetup setup;
 		setup.about = "Creates a viewport. Viewports are required.";
@@ -463,7 +461,7 @@ InsertParser_Block0(std::map<std::string, mvPythonParser>& parsers)
 	}
 }
 
-mv_internal void
+static void
 InsertParser_Block1(std::map<std::string, mvPythonParser>& parsers)
 {
 	//-----------------------------------------------------------------------------
@@ -889,7 +887,7 @@ InsertParser_Block1(std::map<std::string, mvPythonParser>& parsers)
 	}
 }
 
-mv_internal void
+static void
 InsertParser_Block2(std::map<std::string, mvPythonParser>& parsers)
 {
 	{
@@ -1003,18 +1001,6 @@ InsertParser_Block2(std::map<std::string, mvPythonParser>& parsers)
 
 		mvPythonParser parser = FinalizeParser(setup, args);
 		parsers.insert({ "reorder_items", parser });
-	}
-
-	{
-		std::vector<mvPythonDataElement> args;
-		args.push_back({ mvPyDataType::UUID, "template_registry" });
-
-		mvPythonParserSetup setup;
-		setup.about = "Binds a global template registry.";
-		setup.category = { "Item Registry" };
-
-		mvPythonParser parser = FinalizeParser(setup, args);
-		parsers.insert({ "bind_template_registry", parser });
 	}
 
 	{
@@ -1242,7 +1228,7 @@ InsertParser_Block2(std::map<std::string, mvPythonParser>& parsers)
 	}
 }
 
-mv_internal void
+static void
 InsertParser_Block3(std::map<std::string, mvPythonParser>& parsers)
 {
 
@@ -1454,7 +1440,7 @@ InsertParser_Block3(std::map<std::string, mvPythonParser>& parsers)
 	}
 }
 
-mv_internal void
+static void
 InsertParser_Block4(std::map<std::string, mvPythonParser>& parsers)
 {
 	//-----------------------------------------------------------------------------

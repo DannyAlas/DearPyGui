@@ -1,10 +1,8 @@
 #include "mvTables.h"
 #include "mvContext.h"
 #include "mvCore.h"
-#include "mvLog.h"
 #include "mvItemRegistry.h"
-#include "mvPyObject.h"
-#include "mvPythonExceptions.h"
+#include "mvPyUtils.h"
 #include "mvFontItems.h"
 #include "mvThemes.h"
 
@@ -25,13 +23,6 @@ void mvTableCell::draw(ImDrawList* drawlist, float x, float y)
 mvTableColumn::mvTableColumn(mvUUID uuid)
 	: mvAppItem(uuid)
 {
-}
-
-void mvTableColumn::applySpecificTemplate(mvAppItem* item)
-{
-	auto titem = static_cast<mvTableColumn*>(item);
-	_flags = titem->_flags;
-	_init_width_or_weight = titem->_init_width_or_weight;
 }
 
 void mvTableColumn::draw(ImDrawList* drawlist, float x, float y)
@@ -127,17 +118,6 @@ mvTableRow::mvTableRow(mvUUID uuid)
 mvTable::mvTable(mvUUID uuid)
 	: mvAppItem(uuid)
 {
-}
-
-void mvTable::applySpecificTemplate(mvAppItem* item)
-{
-	auto titem = static_cast<mvTable*>(item);
-	_columns = titem->_columns;
-	_inner_width = titem->_inner_width;
-	_freezeRows = titem->_freezeRows;
-	_freezeColumns = titem->_freezeColumns;
-	_flags = titem->_flags;
-	_tableHeader = titem->_tableHeader;
 }
 
 void mvTable::draw(ImDrawList* drawlist, float x, float y)
@@ -364,7 +344,7 @@ void mvTable::draw(ImDrawList* drawlist, float x, float y)
 
 }
 
-void mvTable::onChildAdd(mvRef<mvAppItem> item)
+void mvTable::onChildAdd(std::shared_ptr<mvAppItem> item)
 {
 
 	if (item->type == mvAppItemType::mvTableColumn)
@@ -402,7 +382,7 @@ void mvTable::onChildAdd(mvRef<mvAppItem> item)
 	}
 }
 
-void mvTable::onChildRemoved(mvRef<mvAppItem> item)
+void mvTable::onChildRemoved(std::shared_ptr<mvAppItem> item)
 {
 	if (item->type == mvAppItemType::mvTableColumn)
 	{

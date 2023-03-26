@@ -2,7 +2,6 @@
 
 #include "mvItemRegistry.h"
 #include "dearpygui.h"
-#include "cpp.hint"
 
 class mvTextureRegistry : public mvAppItem
 {
@@ -29,7 +28,6 @@ public:
 
     void draw(ImDrawList* drawlist, float x, float y) override;
     void handleSpecificRequiredArgs(PyObject* dict) override;
-    void applySpecificTemplate(mvAppItem* item) override;
 
     // values
     void setDataSource(mvUUID dataSource) override;
@@ -41,7 +39,7 @@ public:
 
 public:
 
-    mvRef<std::vector<float>> _value = CreateRef<std::vector<float>>(std::vector<float>{0.0f});
+    std::shared_ptr<std::vector<float>> _value = std::make_shared<std::vector<float>>(std::vector<float>{0.0f});
     void* _texture = nullptr;
     bool                      _dirty = true;
     int                       _permWidth = 0;
@@ -66,7 +64,6 @@ public:
     void handleSpecificRequiredArgs(PyObject* dict) override;
     void handleSpecificKeywordArgs(PyObject* dict) override;
     void getSpecificConfiguration(PyObject* dict) override;
-    void applySpecificTemplate(mvAppItem* item) override;
 
     // values
     PyObject* getPyValue() override;
@@ -97,7 +94,6 @@ public:
     void handleSpecificRequiredArgs(PyObject* dict) override;
     void handleSpecificKeywordArgs(PyObject* dict) override;
     void getSpecificConfiguration(PyObject* dict) override;
-    void applySpecificTemplate(mvAppItem* item) override;
 
     // values
     void setDataSource(mvUUID dataSource) override;
@@ -107,7 +103,7 @@ public:
 
 public:
 
-    mvRef<std::vector<float>> _value = CreateRef<std::vector<float>>(std::vector<float>{0.0f});
+    std::shared_ptr<std::vector<float>> _value = std::make_shared<std::vector<float>>(std::vector<float>{0.0f});
     void* _texture = nullptr;
     bool                      _dirty = true;
     int                       _permWidth = 0;

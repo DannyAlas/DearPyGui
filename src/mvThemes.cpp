@@ -1,6 +1,5 @@
 #include "mvThemes.h"
-#include "mvLog.h"
-#include "mvPythonExceptions.h"
+#include "mvPyUtils.h"
 #include <implot.h>
 #include <imgui_internal.h>
 
@@ -73,12 +72,12 @@ void mvTheme::push_theme_components()
 			if (_specificEnabled == comp->_specificEnabled)
 			{
 				comp->_oldComponent = *comp->_specificComponentPtr;
-				*comp->_specificComponentPtr = *(mvRef<mvThemeComponent>*) & child;
+				*comp->_specificComponentPtr = *(std::shared_ptr<mvThemeComponent>*) & child;
 			}
 			else
 			{
 				comp->_oldComponent = *comp->_specificDisabledComponentPtr;
-				*comp->_specificDisabledComponentPtr = *(mvRef<mvThemeComponent>*) & child;
+				*comp->_specificDisabledComponentPtr = *(std::shared_ptr<mvThemeComponent>*) & child;
 			}
 		}
 	}
@@ -128,7 +127,7 @@ void mvThemeColor::push_theme_color()
 
 		ImGui::PushStyleColor(_targetColor, color);
 	}
-	else if (_libType == mvLibType::MV_IMPLOT)
+	else if (_libType == mvLibType::OT)
 		ImPlot::PushStyleColor(_targetColor, color);
 	else if (_libType == mvLibType::MV_IMNODES)
 		ImNodes::PushColorStyle(_targetColor, ImGui::ColorConvertFloat4ToU32(color));
@@ -138,7 +137,7 @@ void mvThemeColor::pop_theme_color()
 {
 	if (_libType == mvLibType::MV_IMGUI)
 		ImGui::PopStyleColor();
-	else if (_libType == mvLibType::MV_IMPLOT)
+	else if (_libType == mvLibType::OT)
 		ImPlot::PopStyleColor();
 	else if (_libType == mvLibType::MV_IMNODES)
 		ImNodes::PopColorStyle();
@@ -183,18 +182,16 @@ void mvThemeColor::handleSpecificKeywordArgs(PyObject* dict)
 		{
 			state.ok = false;
 			mvThrowPythonError(mvErrorCode::mvNone, "Style target out of range.");
-			MV_ITEM_REGISTRY_ERROR("Item's parent must be plot.");
 			assert(false);
 		}
 	}
 
-	else if (_libType == mvLibType::MV_IMPLOT)
+	else if (_libType == mvLibType::OT)
 	{
 		if (_targetColor >= ImPlotCol_COUNT || _targetColor < 0)
 		{
 			state.ok = false;
 			mvThrowPythonError(mvErrorCode::mvNone, "Style target out of range.");
-			MV_ITEM_REGISTRY_ERROR("Item's parent must be plot.");
 			assert(false);
 		}
 	}
@@ -205,7 +202,6 @@ void mvThemeColor::handleSpecificKeywordArgs(PyObject* dict)
 		{
 			state.ok = false;
 			mvThrowPythonError(mvErrorCode::mvNone, "Style target out of range.");
-			MV_ITEM_REGISTRY_ERROR("Item's parent must be plot.");
 			assert(false);
 		}
 	}
@@ -273,14 +269,6 @@ void mvThemeColor::setDataSource(mvUUID dataSource)
 	_value = *static_cast<std::shared_ptr<std::array<float, 4>>*>(item->getValue());
 }
 
-void mvThemeColor::applySpecificTemplate(mvAppItem* item)
-{
-	auto titem = static_cast<mvThemeColor*>(item);
-	if (config.source != 0) _value = titem->_value;
-	_targetColor = titem->_targetColor;
-	_libType = titem->_libType;
-}
-
 mvThemeComponent::mvThemeComponent(mvUUID uuid)
 	:
 	mvAppItem(uuid)
@@ -315,7 +303,7 @@ void mvThemeComponent::pop_theme_items()
 
 void mvThemeComponent::handleSpecificPositionalArgs(PyObject* dict)
 {
-	mv_local_persist mvRef<mvThemeComponent> all_item_theme_component = nullptr;
+	static std::shared_ptr<mvThemeComponent> all_item_theme_component = nullptr;
 
 	if (!VerifyPositionalArguments(GetParsers()[GetEntityCommand(type)], dict))
 		return;
@@ -546,7 +534,7 @@ void mvThemeStyle::push_theme_style()
 		else if (var_info->Type == ImGuiDataType_Float && var_info->Count == 1)
 			ImGui::PushStyleVar(_targetStyle, (*_value)[0]);
 	}
-	else if (_libType == mvLibType::MV_IMPLOT)
+	else if (_libType == mvLibType::OT)
 	{
 		const mvGuiStyleVarInfo* var_info = GetPlotStyleVarInfo(_targetStyle);
 		if (var_info->Type == ImGuiDataType_Float && var_info->Count == 1)
@@ -570,7 +558,7 @@ void mvThemeStyle::pop_theme_style()
 {
 	if (_libType == mvLibType::MV_IMGUI)
 		ImGui::PopStyleVar();
-	else if (_libType == mvLibType::MV_IMPLOT)
+	else if (_libType == mvLibType::OT)
 		ImPlot::PopStyleVar();
 	else if (_libType == mvLibType::MV_IMNODES)
 		ImNodes::PopStyleVar();
@@ -619,17 +607,15 @@ void mvThemeStyle::handleSpecificKeywordArgs(PyObject* dict)
 		{
 			state.ok = false;
 			mvThrowPythonError(mvErrorCode::mvNone, "");
-			MV_ITEM_REGISTRY_ERROR("Item's parent must be plot.");
 		}
 	}
 
-	else if (_libType == mvLibType::MV_IMPLOT)
+	else if (_libType == mvLibType::OT)
 	{
 		if (_targetStyle >= ImPlotStyleVar_COUNT || _targetStyle < 0)
 		{
 			state.ok = false;
 			mvThrowPythonError(mvErrorCode::mvNone, "");
-			MV_ITEM_REGISTRY_ERROR("Item's parent must be plot.");
 		}
 	}
 
@@ -639,7 +625,6 @@ void mvThemeStyle::handleSpecificKeywordArgs(PyObject* dict)
 		{
 			state.ok = false;
 			mvThrowPythonError(mvErrorCode::mvNone, "");
-			MV_ITEM_REGISTRY_ERROR("Item's parent must be plot.");
 		}
 	}
 }
@@ -654,12 +639,4 @@ void mvThemeStyle::getSpecificConfiguration(PyObject* dict)
 
 	PyDict_SetItemString(dict, "target", py_target);
 	PyDict_SetItemString(dict, "category", py_cat);
-}
-
-void mvThemeStyle::applySpecificTemplate(mvAppItem* item)
-{
-	auto titem = static_cast<mvThemeStyle*>(item);
-	if (config.source != 0) _value = titem->_value;
-	_targetStyle = titem->_targetStyle;
-	_libType = titem->_libType;
 }

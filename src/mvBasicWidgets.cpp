@@ -2,12 +2,16 @@
 #include "mvFontItems.h"
 #include "mvThemes.h"
 #include "mvContainers.h"
-#include "mvPyObject.h"
+#include "mvPyUtils.h"
 #include "mvItemHandlers.h"
-#include "mvPythonExceptions.h"
 #include <misc/cpp/imgui_stdlib.h>
 #include "mvTextureItems.h"
-#include "mvKnobCustom.h"
+
+//#include <imgui.h>
+//#define IMGUI_DEFINE_MATH_OPERATORS
+//#include <imgui_internal.h>
+
+static bool KnobFloat(const char* label, float* p_value, float v_min, float v_max, float v_step = 50.f);
 
 //-----------------------------------------------------------------------------
 // [SECTION] get_item_configuration(...) specifics
@@ -400,7 +404,7 @@ DearPyGui::fill_configuration_dict(const mvInputTextConfig& inConfig, PyObject* 
 		return;
 
 	PyDict_SetItemString(outDict, "hint", mvPyObject(ToPyString(inConfig.hint)));
-	PyDict_SetItemString(outDict, "multline", mvPyObject(ToPyBool(inConfig.multiline)));
+	PyDict_SetItemString(outDict, "multiline", mvPyObject(ToPyBool(inConfig.multiline)));
 
 	// helper to check and set bit
 	auto checkbitset = [outDict](const char* keyword, int flag, const int& flags)
@@ -2520,441 +2524,6 @@ DearPyGui::set_data_source(mvAppItem& item, mvUUID dataSource, mvProgressBarConf
 }
 
 //-----------------------------------------------------------------------------
-// [SECTION] template specifics
-//-----------------------------------------------------------------------------
-
-void
-DearPyGui::apply_template(const mvSimplePlotConfig& sourceConfig, mvSimplePlotConfig& dstConfig)
-{
-	dstConfig.value = sourceConfig.value;
-	dstConfig.overlay = sourceConfig.overlay;
-	dstConfig.scaleMin = sourceConfig.scaleMin;
-	dstConfig.scaleMax = sourceConfig.scaleMax;
-	dstConfig.histogram = sourceConfig.histogram;
-	dstConfig.autosize = sourceConfig.autosize;
-}
-
-void
-DearPyGui::apply_template(const mvButtonConfig& sourceConfig, mvButtonConfig& dstConfig)
-{
-	dstConfig.direction = sourceConfig.direction;
-	dstConfig.small_button = sourceConfig.small_button;
-	dstConfig.arrow = sourceConfig.arrow;
-}
-
-void
-DearPyGui::apply_template(const mvComboConfig& sourceConfig, mvComboConfig& dstConfig)
-{
-	dstConfig.value = sourceConfig.value;
-	dstConfig.disabled_value = sourceConfig.disabled_value;
-	dstConfig.flags = sourceConfig.flags;
-	dstConfig.items = sourceConfig.items;
-	dstConfig.popup_align_left = sourceConfig.popup_align_left;
-	dstConfig.no_preview = sourceConfig.no_preview;
-}
-
-void
-DearPyGui::apply_template(const mvCheckboxConfig& sourceConfig, mvCheckboxConfig& dstConfig)
-{
-	dstConfig.value = sourceConfig.value;
-	dstConfig.disabled_value = sourceConfig.disabled_value;
-}
-
-void
-DearPyGui::apply_template(const mvDragFloatConfig& sourceConfig, mvDragFloatConfig& dstConfig)
-{
-	dstConfig.value = sourceConfig.value;
-	dstConfig.disabled_value = sourceConfig.disabled_value;
-	dstConfig.speed = sourceConfig.speed;
-	dstConfig.minv = sourceConfig.minv;
-	dstConfig.maxv = sourceConfig.maxv;
-	dstConfig.format = sourceConfig.format;
-	dstConfig.flags = sourceConfig.flags;
-	dstConfig.stor_flags = sourceConfig.stor_flags;
-}
-
-void
-DearPyGui::apply_template(const mvDragDoubleConfig& sourceConfig, mvDragDoubleConfig& dstConfig)
-{
-	dstConfig.value = sourceConfig.value;
-	dstConfig.disabled_value = sourceConfig.disabled_value;
-	dstConfig.speed = sourceConfig.speed;
-	dstConfig.minv = sourceConfig.minv;
-	dstConfig.maxv = sourceConfig.maxv;
-	dstConfig.format = sourceConfig.format;
-	dstConfig.flags = sourceConfig.flags;
-	dstConfig.stor_flags = sourceConfig.stor_flags;
-}
-
-void
-DearPyGui::apply_template(const mvDragIntConfig& sourceConfig, mvDragIntConfig& dstConfig)
-{
-	dstConfig.value = sourceConfig.value;
-	dstConfig.disabled_value = sourceConfig.disabled_value;
-	dstConfig.speed = sourceConfig.speed;
-	dstConfig.minv = sourceConfig.minv;
-	dstConfig.maxv = sourceConfig.maxv;
-	dstConfig.format = sourceConfig.format;
-	dstConfig.flags = sourceConfig.flags;
-	dstConfig.stor_flags = sourceConfig.stor_flags;
-}
-
-void
-DearPyGui::apply_template(const mvDragIntMultiConfig& sourceConfig, mvDragIntMultiConfig& dstConfig)
-{
-	dstConfig.value = sourceConfig.value;
-	dstConfig.disabled_value[0] = sourceConfig.disabled_value[0];
-	dstConfig.disabled_value[1] = sourceConfig.disabled_value[1];
-	dstConfig.disabled_value[2] = sourceConfig.disabled_value[2];
-	dstConfig.disabled_value[3] = sourceConfig.disabled_value[3];
-	dstConfig.speed = sourceConfig.speed;
-	dstConfig.minv = sourceConfig.minv;
-	dstConfig.maxv = sourceConfig.maxv;
-	dstConfig.format = sourceConfig.format;
-	dstConfig.flags = sourceConfig.flags;
-	dstConfig.stor_flags = sourceConfig.stor_flags;
-	dstConfig.size = sourceConfig.size;
-}
-
-void
-DearPyGui::apply_template(const mvDragFloatMultiConfig& sourceConfig, mvDragFloatMultiConfig& dstConfig)
-{
-	dstConfig.value = sourceConfig.value;
-	dstConfig.disabled_value[0] = sourceConfig.disabled_value[0];
-	dstConfig.disabled_value[1] = sourceConfig.disabled_value[1];
-	dstConfig.disabled_value[2] = sourceConfig.disabled_value[2];
-	dstConfig.disabled_value[3] = sourceConfig.disabled_value[3];
-	dstConfig.speed = sourceConfig.speed;
-	dstConfig.minv = sourceConfig.minv;
-	dstConfig.maxv = sourceConfig.maxv;
-	dstConfig.format = sourceConfig.format;
-	dstConfig.flags = sourceConfig.flags;
-	dstConfig.stor_flags = sourceConfig.stor_flags;
-	dstConfig.size = sourceConfig.size;
-}
-
-void
-DearPyGui::apply_template(const mvDragDoubleMultiConfig& sourceConfig, mvDragDoubleMultiConfig& dstConfig)
-{
-	dstConfig.value = sourceConfig.value;
-	dstConfig.disabled_value[0] = sourceConfig.disabled_value[0];
-	dstConfig.disabled_value[1] = sourceConfig.disabled_value[1];
-	dstConfig.disabled_value[2] = sourceConfig.disabled_value[2];
-	dstConfig.disabled_value[3] = sourceConfig.disabled_value[3];
-	dstConfig.speed = sourceConfig.speed;
-	dstConfig.minv = sourceConfig.minv;
-	dstConfig.maxv = sourceConfig.maxv;
-	dstConfig.format = sourceConfig.format;
-	dstConfig.flags = sourceConfig.flags;
-	dstConfig.stor_flags = sourceConfig.stor_flags;
-	dstConfig.size = sourceConfig.size;
-}
-
-void
-DearPyGui::apply_template(const mvSliderFloatConfig& sourceConfig, mvSliderFloatConfig& dstConfig)
-{
-	dstConfig.value = sourceConfig.value;
-	dstConfig.disabled_value = sourceConfig.disabled_value;
-	dstConfig.minv = sourceConfig.minv;
-	dstConfig.maxv = sourceConfig.maxv;
-	dstConfig.format = sourceConfig.format;
-	dstConfig.vertical = sourceConfig.vertical;
-	dstConfig.flags = sourceConfig.flags;
-	dstConfig.stor_flags = sourceConfig.stor_flags;
-}
-
-void
-DearPyGui::apply_template(const mvSliderFloatMultiConfig& sourceConfig, mvSliderFloatMultiConfig& dstConfig)
-{
-	dstConfig.value = sourceConfig.value;
-	dstConfig.disabled_value[0] = sourceConfig.disabled_value[0];
-	dstConfig.disabled_value[1] = sourceConfig.disabled_value[1];
-	dstConfig.disabled_value[2] = sourceConfig.disabled_value[2];
-	dstConfig.disabled_value[3] = sourceConfig.disabled_value[3];
-	dstConfig.minv = sourceConfig.minv;
-	dstConfig.maxv = sourceConfig.maxv;
-	dstConfig.format = sourceConfig.format;
-	dstConfig.flags = sourceConfig.flags;
-	dstConfig.stor_flags = sourceConfig.stor_flags;
-	dstConfig.size = sourceConfig.size;
-}
-
-void
-DearPyGui::apply_template(const mvSliderDoubleConfig& sourceConfig, mvSliderDoubleConfig& dstConfig)
-{
-	dstConfig.value = sourceConfig.value;
-	dstConfig.disabled_value = sourceConfig.disabled_value;
-	dstConfig.minv = sourceConfig.minv;
-	dstConfig.maxv = sourceConfig.maxv;
-	dstConfig.format = sourceConfig.format;
-	dstConfig.vertical = sourceConfig.vertical;
-	dstConfig.flags = sourceConfig.flags;
-	dstConfig.stor_flags = sourceConfig.stor_flags;
-}
-
-void
-DearPyGui::apply_template(const mvSliderDoubleMultiConfig& sourceConfig, mvSliderDoubleMultiConfig& dstConfig)
-{
-	dstConfig.value = sourceConfig.value;
-	dstConfig.disabled_value[0] = sourceConfig.disabled_value[0];
-	dstConfig.disabled_value[1] = sourceConfig.disabled_value[1];
-	dstConfig.disabled_value[2] = sourceConfig.disabled_value[2];
-	dstConfig.disabled_value[3] = sourceConfig.disabled_value[3];
-	dstConfig.minv = sourceConfig.minv;
-	dstConfig.maxv = sourceConfig.maxv;
-	dstConfig.format = sourceConfig.format;
-	dstConfig.flags = sourceConfig.flags;
-	dstConfig.stor_flags = sourceConfig.stor_flags;
-	dstConfig.size = sourceConfig.size;
-}
-
-void
-DearPyGui::apply_template(const mvSliderIntConfig& sourceConfig, mvSliderIntConfig& dstConfig)
-{
-	dstConfig.value = sourceConfig.value;
-	dstConfig.disabled_value = sourceConfig.disabled_value;
-	dstConfig.minv = sourceConfig.minv;
-	dstConfig.maxv = sourceConfig.maxv;
-	dstConfig.format = sourceConfig.format;
-	dstConfig.vertical = sourceConfig.vertical;
-	dstConfig.flags = sourceConfig.flags;
-	dstConfig.stor_flags = sourceConfig.stor_flags;
-}
-
-void
-DearPyGui::apply_template(const mvSliderIntMultiConfig& sourceConfig, mvSliderIntMultiConfig& dstConfig)
-{
-	dstConfig.value = sourceConfig.value;
-	dstConfig.disabled_value[0] = sourceConfig.disabled_value[0];
-	dstConfig.disabled_value[1] = sourceConfig.disabled_value[1];
-	dstConfig.disabled_value[2] = sourceConfig.disabled_value[2];
-	dstConfig.disabled_value[3] = sourceConfig.disabled_value[3];
-	dstConfig.minv = sourceConfig.minv;
-	dstConfig.maxv = sourceConfig.maxv;
-	dstConfig.format = sourceConfig.format;
-	dstConfig.flags = sourceConfig.flags;
-	dstConfig.stor_flags = sourceConfig.stor_flags;
-	dstConfig.size = sourceConfig.size;
-}
-
-void
-DearPyGui::apply_template(const mvListboxConfig& sourceConfig, mvListboxConfig& dstConfig)
-{
-    dstConfig.value = sourceConfig.value;
-    dstConfig.disabled_value = sourceConfig.disabled_value;
-    dstConfig.names = sourceConfig.names;
-    dstConfig.itemsHeight = sourceConfig.itemsHeight;
-    dstConfig.charNames = sourceConfig.charNames;
-    dstConfig.index = sourceConfig.index;
-    dstConfig.disabledindex = sourceConfig.disabledindex;
-}
-
-void
-DearPyGui::apply_template(const mvRadioButtonConfig& sourceConfig, mvRadioButtonConfig& dstConfig)
-{
-	dstConfig.value = sourceConfig.value;
-	dstConfig.disabled_value = sourceConfig.disabled_value;
-	dstConfig.itemnames = sourceConfig.itemnames;
-	dstConfig.horizontal = sourceConfig.horizontal;
-	dstConfig.index = sourceConfig.index;
-	dstConfig.disabledindex = sourceConfig.disabledindex;
-}
-
-void
-DearPyGui::apply_template(const mvInputTextConfig& sourceConfig, mvInputTextConfig& dstConfig)
-{
-	dstConfig.value = sourceConfig.value;
-	dstConfig.disabled_value = sourceConfig.disabled_value;
-	dstConfig.hint = sourceConfig.hint;
-	dstConfig.multiline = sourceConfig.multiline;
-	dstConfig.flags = sourceConfig.flags;
-	dstConfig.stor_flags = sourceConfig.stor_flags;
-}
-
-void
-DearPyGui::apply_template(const mvInputIntConfig& sourceConfig, mvInputIntConfig& dstConfig)
-{
-	dstConfig.value = sourceConfig.value;
-	dstConfig.disabled_value = sourceConfig.disabled_value;
-	dstConfig.minv = sourceConfig.minv;
-	dstConfig.maxv = sourceConfig.maxv;
-	dstConfig.min_clamped = sourceConfig.min_clamped;
-	dstConfig.max_clamped = sourceConfig.max_clamped;
-	dstConfig.flags = sourceConfig.flags;
-	dstConfig.stor_flags = sourceConfig.stor_flags;
-	dstConfig.last_value = sourceConfig.last_value;
-	dstConfig.step = sourceConfig.step;
-	dstConfig.step_fast = sourceConfig.step_fast;
-}
-
-void
-DearPyGui::apply_template(const mvInputFloatConfig& sourceConfig, mvInputFloatConfig& dstConfig)
-{
-	dstConfig.value = sourceConfig.value;
-	dstConfig.disabled_value = sourceConfig.disabled_value;
-	dstConfig.minv = sourceConfig.minv;
-	dstConfig.maxv = sourceConfig.maxv;
-	dstConfig.min_clamped = sourceConfig.min_clamped;
-	dstConfig.max_clamped = sourceConfig.max_clamped;
-	dstConfig.flags = sourceConfig.flags;
-	dstConfig.format = sourceConfig.format;
-	dstConfig.stor_flags = sourceConfig.stor_flags;
-	dstConfig.last_value = sourceConfig.last_value;
-	dstConfig.step = sourceConfig.step;
-	dstConfig.step_fast = sourceConfig.step_fast;
-}
-
-void
-DearPyGui::apply_template(const mvInputDoubleConfig& sourceConfig, mvInputDoubleConfig& dstConfig)
-{
-	dstConfig.value = sourceConfig.value;
-	dstConfig.disabled_value = sourceConfig.disabled_value;
-	dstConfig.minv = sourceConfig.minv;
-	dstConfig.maxv = sourceConfig.maxv;
-	dstConfig.min_clamped = sourceConfig.min_clamped;
-	dstConfig.max_clamped = sourceConfig.max_clamped;
-	dstConfig.flags = sourceConfig.flags;
-	dstConfig.format = sourceConfig.format;
-	dstConfig.stor_flags = sourceConfig.stor_flags;
-	dstConfig.last_value = sourceConfig.last_value;
-	dstConfig.step = sourceConfig.step;
-	dstConfig.step_fast = sourceConfig.step_fast;
-}
-
-void
-DearPyGui::apply_template(const mvInputFloatMultiConfig& sourceConfig, mvInputFloatMultiConfig& dstConfig)
-{
-	dstConfig.value = sourceConfig.value;
-	dstConfig.disabled_value[0] = sourceConfig.disabled_value[0];
-	dstConfig.disabled_value[1] = sourceConfig.disabled_value[1];
-	dstConfig.disabled_value[2] = sourceConfig.disabled_value[2];
-	dstConfig.disabled_value[3] = sourceConfig.disabled_value[3];
-	dstConfig.minv = sourceConfig.minv;
-	dstConfig.maxv = sourceConfig.maxv;
-	dstConfig.min_clamped = sourceConfig.min_clamped;
-	dstConfig.max_clamped = sourceConfig.max_clamped;
-	dstConfig.format = sourceConfig.format;
-	dstConfig.flags = sourceConfig.flags;
-	dstConfig.stor_flags = sourceConfig.stor_flags;
-	dstConfig.last_value = sourceConfig.last_value;
-	dstConfig.size = sourceConfig.size;
-}
-
-void
-DearPyGui::apply_template(const mvInputDoubleMultiConfig& sourceConfig, mvInputDoubleMultiConfig& dstConfig)
-{
-	dstConfig.value = sourceConfig.value;
-	dstConfig.disabled_value[0] = sourceConfig.disabled_value[0];
-	dstConfig.disabled_value[1] = sourceConfig.disabled_value[1];
-	dstConfig.disabled_value[2] = sourceConfig.disabled_value[2];
-	dstConfig.disabled_value[3] = sourceConfig.disabled_value[3];
-	dstConfig.minv = sourceConfig.minv;
-	dstConfig.maxv = sourceConfig.maxv;
-	dstConfig.min_clamped = sourceConfig.min_clamped;
-	dstConfig.max_clamped = sourceConfig.max_clamped;
-	dstConfig.format = sourceConfig.format;
-	dstConfig.flags = sourceConfig.flags;
-	dstConfig.stor_flags = sourceConfig.stor_flags;
-	dstConfig.last_value = sourceConfig.last_value;
-	dstConfig.size = sourceConfig.size;
-}
-
-void
-DearPyGui::apply_template(const mvKnobFloatConfig& sourceConfig, mvKnobFloatConfig& dstConfig)
-{
-	dstConfig.value = sourceConfig.value;
-	dstConfig.disabled_value = sourceConfig.disabled_value;
-	dstConfig.minv = sourceConfig.minv;
-	dstConfig.maxv = sourceConfig.maxv;
-	dstConfig.step = sourceConfig.step;
-}
-
-void
-DearPyGui::apply_template(const mvInputIntMultiConfig& sourceConfig, mvInputIntMultiConfig& dstConfig)
-{
-	dstConfig.value = sourceConfig.value;
-	dstConfig.disabled_value[0] = sourceConfig.disabled_value[0];
-	dstConfig.disabled_value[1] = sourceConfig.disabled_value[1];
-	dstConfig.disabled_value[2] = sourceConfig.disabled_value[2];
-	dstConfig.disabled_value[3] = sourceConfig.disabled_value[3];
-	dstConfig.minv = sourceConfig.minv;
-	dstConfig.maxv = sourceConfig.maxv;
-	dstConfig.min_clamped = sourceConfig.min_clamped;
-	dstConfig.max_clamped = sourceConfig.max_clamped;
-	dstConfig.flags = sourceConfig.flags;
-	dstConfig.stor_flags = sourceConfig.stor_flags;
-	dstConfig.last_value = sourceConfig.last_value;
-	dstConfig.size = sourceConfig.size;
-}
-
-void
-DearPyGui::apply_template(const mvTextConfig& sourceConfig, mvTextConfig& dstConfig)
-{
-	dstConfig.value = sourceConfig.value;
-	dstConfig.disabled_value = sourceConfig.disabled_value;
-	dstConfig.color = sourceConfig.color;
-	dstConfig.wrap = sourceConfig.wrap;
-	dstConfig.bullet = sourceConfig.bullet;
-	dstConfig.show_label = sourceConfig.show_label;
-}
-
-void
-DearPyGui::apply_template(const mvSelectableConfig& sourceConfig, mvSelectableConfig& dstConfig)
-{
-	dstConfig.value = sourceConfig.value;
-	dstConfig.disabled_value = sourceConfig.disabled_value;
-	dstConfig.flags = sourceConfig.flags;
-}
-
-void
-DearPyGui::apply_template(const mvTabButtonConfig& sourceConfig, mvTabButtonConfig& dstConfig)
-{
-	dstConfig.flags = sourceConfig.flags;
-}
-
-void
-DearPyGui::apply_template(const mvMenuItemConfig& sourceConfig, mvMenuItemConfig& dstConfig)
-{
-	dstConfig.value = sourceConfig.value;
-	dstConfig.disabled_value = sourceConfig.disabled_value;
-	dstConfig.shortcut = sourceConfig.shortcut;
-	dstConfig.check = sourceConfig.check;
-}
-
-void
-DearPyGui::apply_template(const mvProgressBarConfig& sourceConfig, mvProgressBarConfig& dstConfig)
-{
-	dstConfig.value = sourceConfig.value;
-	dstConfig.disabled_value = sourceConfig.disabled_value;
-	dstConfig.overlay = sourceConfig.overlay;
-}
-
-void
-DearPyGui::apply_template(const mvImageConfig& sourceConfig, mvImageConfig& dstConfig)
-{
-	dstConfig.textureUUID = sourceConfig.textureUUID;
-	dstConfig.uv_min = sourceConfig.uv_min;
-	dstConfig.uv_max = sourceConfig.uv_max;
-	dstConfig.tintColor = sourceConfig.tintColor;
-	dstConfig.borderColor = sourceConfig.borderColor;
-	dstConfig.texture = sourceConfig.texture;
-	dstConfig._internalTexture = sourceConfig._internalTexture;
-}
-
-void
-DearPyGui::apply_template(const mvImageButtonConfig& sourceConfig, mvImageButtonConfig& dstConfig)
-{
-	dstConfig.textureUUID = sourceConfig.textureUUID;
-	dstConfig.uv_min = sourceConfig.uv_min;
-	dstConfig.uv_max = sourceConfig.uv_max;
-	dstConfig.tintColor = sourceConfig.tintColor;
-	dstConfig.backgroundColor = sourceConfig.backgroundColor;
-	dstConfig.texture = sourceConfig.texture;
-	dstConfig._internalTexture = sourceConfig._internalTexture;
-	dstConfig.framePadding = sourceConfig.framePadding;
-}
-
-//-----------------------------------------------------------------------------
 // [SECTION] draw commands
 //-----------------------------------------------------------------------------
 
@@ -3030,6 +2599,10 @@ DearPyGui::draw_simple_plot(ImDrawList* drawlist, mvAppItem& item, const mvSimpl
 	item.state.leftclicked = ImGui::IsItemClicked();
 	item.state.rightclicked = ImGui::IsItemClicked(1);
 	item.state.middleclicked = ImGui::IsItemClicked(2);
+    for (int i = 0; i < item.state.doubleclicked.size(); i++)
+    {
+        item.state.doubleclicked[i] = IsItemDoubleClicked(i);
+    }
 	item.state.visible = ImGui::IsItemVisible();
 	item.state.rectMin = { ImGui::GetItemRectMin().x, ImGui::GetItemRectMin().y };
 	item.state.rectMax = { ImGui::GetItemRectMax().x, ImGui::GetItemRectMax().y };
@@ -3427,8 +3000,8 @@ DearPyGui::draw_drag_float(ImDrawList* drawlist, mvAppItem& item, mvDragFloatCon
 
 		if (!item.config.enabled) config.disabled_value = *config.value;
 
-		if (ImGui::DragFloat(item.info.internalLabel.c_str(), 
-			item.config.enabled ? config.value.get() : &config.disabled_value, 
+		if (ImGui::DragFloat(item.info.internalLabel.c_str(),
+			item.config.enabled ? config.value.get() : &config.disabled_value,
 			config.speed, config.minv, config.maxv, config.format.c_str(), config.flags))
 		{
 			auto value = *config.value;
@@ -3623,7 +3196,7 @@ DearPyGui::draw_drag_int(ImDrawList* drawlist, mvAppItem& item, mvDragIntConfig&
 
 		if (!item.config.enabled) config.disabled_value = *config.value;
 
-		if (ImGui::DragInt(item.info.internalLabel.c_str(), 
+		if (ImGui::DragInt(item.info.internalLabel.c_str(),
 			item.config.enabled ? config.value.get() : &config.disabled_value, config.speed,
 			config.minv, config.maxv, config.format.c_str(), config.flags))
 		{
@@ -3955,7 +3528,7 @@ DearPyGui::draw_drag_doublex(ImDrawList* drawlist, mvAppItem& item, mvDragDouble
 		bool activated = false;
 
 		if (!item.config.enabled) std::copy(config.value->data(), config.value->data() + 2, config.disabled_value);
-		
+
 		if(config.size > 1 && config.size < 5)
 			activated = ImGui::DragScalarN(item.info.internalLabel.c_str(), ImGuiDataType_Double, item.config.enabled ? config.value->data() : &config.disabled_value[0], config.size, config.speed, &config.minv, &config.maxv, config.format.c_str(), config.flags);
 
@@ -4881,6 +4454,10 @@ DearPyGui::draw_radio_button(ImDrawList* drawlist, mvAppItem& item, mvRadioButto
 	item.state.leftclicked = ImGui::IsItemClicked();
 	item.state.rightclicked = ImGui::IsItemClicked(1);
 	item.state.middleclicked = ImGui::IsItemClicked(2);
+    for (int i = 0; i < item.state.doubleclicked.size(); i++)
+    {
+        item.state.doubleclicked[i] = IsItemDoubleClicked(i);
+    }
 	item.state.visible = ImGui::IsItemVisible();
 	item.state.activated = ImGui::IsItemActivated();
 	item.state.deactivated = ImGui::IsItemDeactivated();
@@ -5101,7 +4678,7 @@ DearPyGui::draw_input_int(ImDrawList* drawlist, mvAppItem& item, mvInputIntConfi
 
 			// If the widget is edited through ctrl+click mode the active value will be entered every frame.
 			// If the value is out of bounds the value will be overwritten with max or min so each frame the value will be switching between the
-			// ctrl+click value and the bounds value until the widget is not in ctrl+click mode. To prevent the callback from running every 
+			// ctrl+click value and the bounds value until the widget is not in ctrl+click mode. To prevent the callback from running every
 			// frame we check if the value was already submitted.
 			if (config.last_value != *config.value)
 			{
@@ -5250,7 +4827,7 @@ DearPyGui::draw_input_floatx(ImDrawList* drawlist, mvAppItem& item, mvInputFloat
 
 			// If the widget is edited through ctrl+click mode the active value will be entered every frame.
 			// If the value is out of bounds the value will be overwritten with max or min so each frame the value will be switching between the
-			// ctrl+click value and the bounds value until the widget is not in ctrl+click mode. To prevent the callback from running every 
+			// ctrl+click value and the bounds value until the widget is not in ctrl+click mode. To prevent the callback from running every
 			// frame we check if the value was already submitted.
 			if (config.last_value != *config.value)
 			{
@@ -5373,7 +4950,7 @@ DearPyGui::draw_input_float(ImDrawList* drawlist, mvAppItem& item, mvInputFloatC
 
 			// If the widget is edited through ctrl+click mode the active value will be entered every frame.
 			// If the value is out of bounds the value will be overwritten with max or min so each frame the value will be switching between the
-			// ctrl+click value and the bounds value until the widget is not in ctrl+click mode. To prevent the callback from running every 
+			// ctrl+click value and the bounds value until the widget is not in ctrl+click mode. To prevent the callback from running every
 			// frame we check if the value was already submitted.
 			if (config.last_value != *config.value)
 			{
@@ -5591,7 +5168,7 @@ DearPyGui::draw_input_double(ImDrawList* drawlist, mvAppItem& item, mvInputDoubl
 
 			// If the widget is edited through ctrl+click mode the active value will be entered every frame.
 			// If the value is out of bounds the value will be overwritten with max or min so each frame the value will be switching between the
-			// ctrl+click value and the bounds value until the widget is not in ctrl+click mode. To prevent the callback from running every 
+			// ctrl+click value and the bounds value until the widget is not in ctrl+click mode. To prevent the callback from running every
 			// frame we check if the value was already submitted.
 			if (config.last_value != *config.value)
 			{
@@ -5727,7 +5304,7 @@ DearPyGui::draw_input_doublex(ImDrawList* drawlist, mvAppItem& item, mvInputDoub
 
 			// If the widget is edited through ctrl+click mode the active value will be entered every frame.
 			// If the value is out of bounds the value will be overwritten with max or min so each frame the value will be switching between the
-			// ctrl+click value and the bounds value until the widget is not in ctrl+click mode. To prevent the callback from running every 
+			// ctrl+click value and the bounds value until the widget is not in ctrl+click mode. To prevent the callback from running every
 			// frame we check if the value was already submitted.
 			if (config.last_value != *config.value)
 			{
@@ -5876,7 +5453,7 @@ DearPyGui::draw_input_intx(ImDrawList* drawlist, mvAppItem& item, mvInputIntMult
 
 			// If the widget is edited through ctrl+click mode the active value will be entered every frame.
 			// If the value is out of bounds the value will be overwritten with max or min so each frame the value will be switching between the
-			// ctrl+click value and the bounds value until the widget is not in ctrl+click mode. To prevent the callback from running every 
+			// ctrl+click value and the bounds value until the widget is not in ctrl+click mode. To prevent the callback from running every
 			// frame we check if the value was already submitted.
 			if (config.last_value != *config.value)
 			{
@@ -5989,13 +5566,10 @@ DearPyGui::draw_text(ImDrawList* drawlist, mvAppItem& item, mvTextConfig& config
 		//ImGui::Text("%s", _value.c_str());
 		ImGui::TextUnformatted(config.value->c_str()); // this doesn't have a buffer size limit
 
-		item.state.lastFrameUpdate = GContext->frame;
-		item.state.visible = ImGui::IsItemVisible();
-		item.state.hovered = ImGui::IsItemHovered();
-		item.state.leftclicked = ImGui::IsItemClicked(0);
-		item.state.rightclicked = ImGui::IsItemClicked(1);
-		item.state.middleclicked = ImGui::IsItemClicked(2);
-		item.state.contextRegionAvail = { ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y };
+		//-----------------------------------------------------------------------------
+		// update state
+		//-----------------------------------------------------------------------------
+		UpdateAppItemState(item.state);
 
 		if (config.wrap >= 0)
 			ImGui::PopTextWrapPos();
@@ -6009,11 +5583,33 @@ DearPyGui::draw_text(ImDrawList* drawlist, mvAppItem& item, mvTextConfig& config
 			ImGui::SetCursorPos({ valueEndX + style.ItemInnerSpacing.x, textVertCenter });
 			ImGui::TextUnformatted(item.config.specifiedLabel.c_str());
 
-			item.state.visible = ImGui::IsItemVisible();
-			item.state.hovered = ImGui::IsItemHovered();
-			item.state.leftclicked = ImGui::IsItemClicked(0);
-			item.state.rightclicked = ImGui::IsItemClicked(1);
-			item.state.middleclicked = ImGui::IsItemClicked(2);
+			//-----------------------------------------------------------------------------
+			// update state - locally updating the item state when label is used. We do not
+			// need to update RectMin parameter since its based on the text corner.
+			//-----------------------------------------------------------------------------
+			item.state.hovered |= ImGui::IsItemHovered();
+			item.state.active |= ImGui::IsItemActive();
+			item.state.focused |= ImGui::IsItemFocused();
+			item.state.leftclicked |= ImGui::IsItemClicked();
+			item.state.rightclicked |= ImGui::IsItemClicked(1);
+			item.state.middleclicked |= ImGui::IsItemClicked(2);
+			for (int i = 0; i < item.state.doubleclicked.size(); i++)
+			{
+				item.state.doubleclicked[i] = IsItemDoubleClicked(i);
+			}
+			item.state.visible |= ImGui::IsItemVisible();
+			item.state.edited |= ImGui::IsItemEdited();
+			item.state.activated |= ImGui::IsItemActivated();
+			item.state.deactivated |= ImGui::IsItemDeactivated();
+			item.state.deactivatedAfterEdit |= ImGui::IsItemDeactivatedAfterEdit();
+			item.state.toggledOpen = ImGui::IsItemToggledOpen();
+			item.state.rectMax = { ImGui::GetItemRectMax().x, ImGui::GetItemRectMax().y};
+			item.state.rectSize = { item.state.rectMax.x - item.state.rectMin.x, item.state.rectMax.y - item.state.rectMin.y };
+			item.state.contextRegionAvail = { ImGui::GetContentRegionAvail().x + item.state.contextRegionAvail.x, ImGui::GetContentRegionAvail().y + item.state.contextRegionAvail.y };
+
+			if (item.state.mvPrevRectSize.x != item.state.rectSize.x || item.state.mvPrevRectSize.y != item.state.rectSize.y) { item.state.mvRectSizeResized = true; }
+			else item.state.mvRectSizeResized = false;
+			item.state.mvPrevRectSize = item.state.rectSize;
 		}
 	}
 
@@ -6225,7 +5821,7 @@ DearPyGui::draw_tab_button(ImDrawList* drawlist, mvAppItem& item, mvTabButtonCon
 	apply_drag_drop(&item);
 }
 
-void 
+void
 DearPyGui::draw_menu_item(ImDrawList* drawlist, mvAppItem& item, mvMenuItemConfig& config)
 {
 	//-----------------------------------------------------------------------------
@@ -6279,8 +5875,8 @@ DearPyGui::draw_menu_item(ImDrawList* drawlist, mvAppItem& item, mvMenuItemConfi
 		ScopedID id(item.uuid);
 
 		// This is ugly and goes against our style system but its the only widget that ImGui chooses to push the disable color for us
-		// so we have to map our text disable color to the system text disable color, or we can create a new constant which goes agains our 
-		// constants. 
+		// so we have to map our text disable color to the system text disable color, or we can create a new constant which goes agains our
+		// constants.
 		ImGui::PushStyleColor(ImGuiCol_TextDisabled, ImGui::GetStyleColorVec4(ImGuiCol_Text));
 
 		// create menu item and see if its selected
@@ -6685,17 +6281,17 @@ DearPyGui::draw_filter_set(ImDrawList* drawlist, mvAppItem& item, mvFilterSetCon
 
 void
 DearPyGui::draw_separator(ImDrawList* drawlist, mvAppItem& item)
-{ 
-	ImGui::Separator(); 
+{
+	ImGui::Separator();
 }
 
 void
 DearPyGui::draw_spacer(ImDrawList* drawlist, mvAppItem& item)
-{ 
-	if (item.config.width == 0 && item.config.height == 0) 
-		ImGui::Spacing(); 
-	else 
-		ImGui::Dummy({ (float)item.config.width, (float)item.config.height }); 
+{
+	if (item.config.width == 0 && item.config.height == 0)
+		ImGui::Spacing();
+	else
+		ImGui::Dummy({ (float)item.config.width, (float)item.config.height });
 }
 
 void
@@ -6714,7 +6310,7 @@ DearPyGui::draw_menubar(ImDrawList* drawlist, mvAppItem& item)
 	}
 }
 
-void 
+void
 DearPyGui::draw_viewport_menubar(ImDrawList* drawlist, mvAppItem& item)
 {
 	if (ImGui::BeginMainMenuBar())
@@ -6768,7 +6364,7 @@ DearPyGui::draw_tooltip(ImDrawList* drawlist, mvAppItem& item)
 	}
 }
 
-void 
+void
 mvDragIntMulti::setPyValue(PyObject* value)
 {
 	std::vector<int> temp = ToIntVect(value);
@@ -6783,7 +6379,7 @@ mvDragIntMulti::setPyValue(PyObject* value)
 		configData.value = std::make_shared<std::array<int, 4>>(temp_array);
 }
 
-void 
+void
 mvDragFloatMulti::setPyValue(PyObject* value)
 {
 	std::vector<float> temp = ToFloatVect(value);
@@ -6843,7 +6439,7 @@ mvSliderDoubleMulti::setPyValue(PyObject* value)
 		configData.value = std::make_shared<std::array<double, 4>>(temp_array);
 }
 
-void 
+void
 mvSliderIntMulti::setPyValue(PyObject* value)
 {
 	std::vector<int> temp = ToIntVect(value);
@@ -6901,7 +6497,7 @@ mvRadioButton::setPyValue(PyObject* value)
 	}
 }
 
-void 
+void
 mvInputIntMulti::setPyValue(PyObject* value)
 {
 	std::vector<int> temp = ToIntVect(value);
@@ -6916,7 +6512,7 @@ mvInputIntMulti::setPyValue(PyObject* value)
 		configData.value = std::make_shared<std::array<int, 4>>(temp_array);
 }
 
-void 
+void
 mvInputFloatMulti::setPyValue(PyObject* value)
 {
 	std::vector<float> temp = ToFloatVect(value);
@@ -6946,7 +6542,7 @@ mvInputDoubleMulti::setPyValue(PyObject* value)
 		configData.value = std::make_shared<std::array<double, 4>>(temp_array);
 }
 
-void 
+void
 mvFilterSet::setPyValue(PyObject* value)
 {
 	auto str_value = ToString(value);
@@ -6965,7 +6561,7 @@ mvFilterSet::setPyValue(PyObject* value)
 	configData.imguiFilter.Build();
 }
 
-void 
+void
 mvSimplePlot::setPyValue(PyObject* value)
 {
 	*configData.value = ToFloatVect(value);
@@ -6983,4 +6579,56 @@ mvSimplePlot::setPyValue(PyObject* value)
 			if (item < configData.scaleMin)configData.scaleMin = item;
 		}
 	}
+}
+
+bool KnobFloat(const char* label, float* p_value, float v_min, float v_max, float v_step) {
+
+    //@ocornut https://github.com/ocornut/imgui/issues/942
+    ImGuiIO& io = ImGui::GetIO();
+    ImGuiStyle& style = ImGui::GetStyle();
+
+    float radius_outer = 20.0f;
+    ImVec2 pos = ImGui::GetCursorScreenPos();
+    ImVec2 center = ImVec2(pos.x + radius_outer, pos.y + radius_outer);
+    float line_height = (strlen(label)) ? ImGui::GetTextLineHeight() : 0;
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+
+    float ANGLE_MIN = 3.141592f * 0.75f;
+    float ANGLE_MAX = 3.141592f * 2.25f;
+
+    ImGui::InvisibleButton(label, ImVec2(radius_outer * 2, radius_outer * 2 + line_height + style.ItemInnerSpacing.y));
+    bool value_changed = false;
+    bool is_active = ImGui::IsItemActive();
+    bool is_hovered = ImGui::IsItemHovered();
+    if (is_active && io.MouseDelta.x != 0.0f) {
+        if (v_step <= 0) v_step = 50.f;
+        float step = (v_max - v_min) / v_step;
+        *p_value += io.MouseDelta.x * step;
+
+        if (*p_value < v_min) *p_value = v_min;
+        if (*p_value > v_max) *p_value = v_max;
+        value_changed = true;
+    }
+    else if (is_hovered && (io.MouseDoubleClicked[0] || io.MouseClicked[2])) {
+        *p_value = (v_max + v_min) * 0.5f;  // reset value
+        value_changed = true;
+    }
+
+    float t = (*p_value - v_min) / (v_max - v_min);
+    float angle = ANGLE_MIN + (ANGLE_MAX - ANGLE_MIN) * t;
+    float angle_cos = cosf(angle), angle_sin = sinf(angle);
+    float radius_inner = radius_outer * 0.40f;
+    draw_list->AddCircleFilled(center, radius_outer, ImGui::GetColorU32(ImGuiCol_FrameBg), 16);
+    draw_list->AddLine(ImVec2(center.x + angle_cos * radius_inner, center.y + angle_sin * radius_inner), ImVec2(center.x + angle_cos * (radius_outer - 2), center.y + angle_sin * (radius_outer - 2)), ImGui::GetColorU32(ImGuiCol_SliderGrabActive), 2.0f);
+    draw_list->AddCircleFilled(center, radius_inner, ImGui::GetColorU32(is_active ? ImGuiCol_FrameBgActive : is_hovered ? ImGuiCol_FrameBgHovered : ImGuiCol_FrameBg), 16);
+    draw_list->AddText(ImVec2(pos.x, pos.y + radius_outer * 2 + style.ItemInnerSpacing.y), ImGui::GetColorU32(ImGuiCol_Text), label);
+
+    if (is_active || is_hovered) {
+        ImGui::SetNextWindowPos(ImVec2(pos.x - style.WindowPadding.x, pos.y - line_height - style.ItemInnerSpacing.y - style.WindowPadding.y));
+        ImGui::BeginTooltip();
+        ImGui::Text("%.3f", *p_value);
+        ImGui::EndTooltip();
+    }
+
+    return value_changed;
 }

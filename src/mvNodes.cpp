@@ -2,9 +2,7 @@
 #include <imnodes.h>
 #include "mvContext.h"
 #include "mvItemRegistry.h"
-#include "mvLog.h"
-#include "mvPythonExceptions.h"
-#include "mvPyObject.h"
+#include "mvPyUtils.h"
 #include "mvItemHandlers.h"
 #include "mvThemes.h"
 #include "mvContainers.h"
@@ -86,7 +84,8 @@ void mvNodeEditor::getSpecificConfiguration(PyObject* dict)
         Py_XINCREF(_delinkCallback);
         PyDict_SetItemString(dict, "delink_callback", _delinkCallback);
     }
-
+    else
+        PyDict_SetItemString(dict, "delink_callback", GetPyNone());
 
     // helper to check and set bit
     auto checkbitset = [dict](const char* keyword, int flag, const int& flags)
@@ -101,7 +100,7 @@ void mvNodeEditor::getSpecificConfiguration(PyObject* dict)
     PyDict_SetItemString(dict, "minimap_location", mvPyObject(ToPyInt(_minimapLocation)));
 }
 
-void mvNodeEditor::onChildRemoved(mvRef<mvAppItem> item)
+void mvNodeEditor::onChildRemoved(std::shared_ptr<mvAppItem> item)
 {
     if (item->type == mvAppItemType::mvNode)
     {
@@ -391,12 +390,6 @@ mvNode::mvNode(mvUUID uuid)
     _id = (int)reduced_address;
 }
 
-void mvNode::applySpecificTemplate(mvAppItem* item)
-{
-    auto titem = static_cast<mvNode*>(item);
-    _draggable = titem->_draggable;
-}
-
 void mvNode::draw(ImDrawList* drawlist, float x, float y)
 {
 
@@ -450,6 +443,10 @@ void mvNode::draw(ImDrawList* drawlist, float x, float y)
         state.leftclicked = ImGui::IsItemClicked();
         state.rightclicked = ImGui::IsItemClicked(1);
         state.middleclicked = ImGui::IsItemClicked(2);
+        for (int i = 0; i < state.doubleclicked.size(); i++)
+        {
+            state.doubleclicked[i] = IsItemDoubleClicked(i);
+        }
         state.visible = ImGui::IsItemVisible();
 
         for (auto& item : childslots[1])
@@ -524,14 +521,6 @@ mvNodeAttribute::mvNodeAttribute(mvUUID uuid)
     int64_t address = (int64_t)this;
     int64_t reduced_address = address % 2147483648;
     _id = (int)reduced_address;
-}
-
-void mvNodeAttribute::applySpecificTemplate(mvAppItem* item)
-{
-    auto titem = static_cast<mvNodeAttribute*>(item);
-    _attrType = titem->_attrType;
-    _shape = titem->_shape;
-    _category = titem->_category;
 }
 
 void mvNodeAttribute::draw(ImDrawList* drawlist, float x, float y)
@@ -674,7 +663,6 @@ void mvNodeLink::handleSpecificRequiredArgs(PyObject* dict)
         {
             mvThrowPythonError(mvErrorCode::mvIncompatibleType, GetEntityCommand(type),
                 "Incompatible type. Expected types include: mvNode", node);
-            MV_ITEM_REGISTRY_ERROR("Nodes must be nodes. duh");
             assert(false);
             return;
         }
@@ -692,7 +680,6 @@ void mvNodeLink::handleSpecificRequiredArgs(PyObject* dict)
         {
             mvThrowPythonError(mvErrorCode::mvIncompatibleType, GetEntityCommand(type),
                 "Incompatible type. Expected types include: mvNode", node);
-            MV_ITEM_REGISTRY_ERROR("Nodes must be nodes. duh");
             assert(false);
             return;
         }

@@ -5,15 +5,11 @@
 #include <ImGuiFileDialog.h>
 #include <cstdlib>
 #include "mvToolManager.h"
-#include "mvBuffer.h"
-#include "mvVec4Type.h"
-#include "mvMat4Type.h"
-#include "mvPythonExceptions.h"
+#include "mvCustomTypes.h"
+#include "mvPyUtils.h"
 #include "mvViewport.h"
 #include <stb_image.h>
-#include "mvLog.h"
 #include "mvProfiler.h"
-
 #include "dearpygui_commands.h"
 #include "dearpygui_parsers.h"
 
@@ -23,7 +19,7 @@ const std::map<std::string, mvPythonParser>&
 GetModuleParsers()
 {
 
-	mv_local_persist auto parsers = std::map<std::string, mvPythonParser>();
+	static auto parsers = std::map<std::string, mvPythonParser>();
 
 	if (parsers.empty())
 	{
@@ -44,8 +40,8 @@ GetModuleParsers()
 const std::vector<std::pair<std::string, long>>&
 GetModuleConstants()
 {
-	mv_local_persist bool First_Run = true;
-	mv_local_persist std::vector<std::pair<std::string, long>> ModuleConstants;
+	static bool First_Run = true;
+	static std::vector<std::pair<std::string, long>> ModuleConstants;
 
 	if (First_Run)
 	{
@@ -405,7 +401,7 @@ GetModuleConstants()
 	return ModuleConstants;
 }
 
-mv_internal void
+static void
 PreFetchItemInfo(mvUUID* out_name, mvUUID* out_parent, mvUUID* out_before, std::string* out_alias, PyObject* args, PyObject* kwargs)
 {
 
@@ -441,11 +437,11 @@ PreFetchItemInfo(mvUUID* out_name, mvUUID* out_parent, mvUUID* out_before, std::
 	}
 }
 
-mv_internal PyObject* 
+static PyObject*
 common_constructor(const char* command, mvAppItemType type, PyObject* self, PyObject* args, PyObject* kwargs)
 {
 
-	mvRef<mvAppItem> item = nullptr;
+	std::shared_ptr<mvAppItem> item = nullptr;
 	mvUUID id = 0;
 	mvUUID parent = 0;
 	mvUUID before = 0;
@@ -461,7 +457,7 @@ common_constructor(const char* command, mvAppItemType type, PyObject* self, PyOb
 
 	i32 flags = DearPyGui::GetEntityDesciptionFlags(type);
 	if (flags & MV_ITEM_DESC_DRAW_CMP)
-		item->drawInfo = CreateRef<mvAppItemDrawInfo>();
+		item->drawInfo = std::make_shared<mvAppItemDrawInfo>();
 
 	// register alias if present
 	if (!alias.empty())
@@ -469,19 +465,6 @@ common_constructor(const char* command, mvAppItemType type, PyObject* self, PyOb
 		RemoveAlias(*GContext->itemRegistry, item->config.alias, true);
 		item->config.alias = alias;
 		AddAlias(*GContext->itemRegistry, item->config.alias, item->uuid);
-	}
-
-	// if template registry is bound, attempt to use it
-	if (GContext->itemRegistry->boundedTemplateRegistry)
-	{
-		for (auto& tempItem : GContext->itemRegistry->boundedTemplateRegistry->childslots[DearPyGui::GetEntityTargetSlot(item->type)])
-		{
-			if (tempItem->type == item->type)
-			{
-				item->applyTemplate(tempItem.get());
-				break;
-			}
-		}
 	}
 
 	VerifyArgumentCount(GetParsers()[command], args);
@@ -512,7 +495,7 @@ PyMODINIT_FUNC
 PyInit__dearpygui(void)
 {
 
-	mv_local_persist std::vector<PyMethodDef> methods;
+	static std::vector<PyMethodDef> methods;
 	methods.clear();
 
 	#define X(el) methods.push_back({GetEntityCommand(mvAppItemType::el), (PyCFunction)el##_command, METH_VARARGS | METH_KEYWORDS, GetParsers()[GetEntityCommand(mvAppItemType::el)].documentation.c_str()});
@@ -645,7 +628,6 @@ PyInit__dearpygui(void)
 
 	// item registry
 	MV_ADD_COMMAND(focus_item);
-	MV_ADD_COMMAND(bind_template_registry);
 	MV_ADD_COMMAND(get_aliases);
 	MV_ADD_COMMAND(add_alias);
 	MV_ADD_COMMAND(remove_alias);
@@ -692,7 +674,7 @@ PyInit__dearpygui(void)
 
 	methods.push_back({ NULL, NULL, 0, NULL });
 
-	mv_local_persist PyModuleDef dearpyguiModule = {
+	static PyModuleDef dearpyguiModule = {
 		PyModuleDef_HEAD_INIT, "_dearpygui", NULL, -1, methods.data(),
 		NULL, NULL, NULL, NULL
 	};
